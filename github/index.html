@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ミニゲーム置き場</title>
+<meta name="description" content="ブラウザですぐ遊べる小さなゲーム集">
+<style>
+:root{--bg:#f6f3ec;--card:#fff;--ink:#231f1b;--sub:#756c62;--line:#e2dbcf;--acc:#d9482b}
+@media (prefers-color-scheme:dark){:root{--bg:#191714;--card:#23201c;--ink:#f0ebe3;--sub:#a59a8c;--line:#38332c;--acc:#ff7a5c}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"Hiragino Sans","Yu Gothic UI","Noto Sans JP",system-ui,sans-serif;line-height:1.7}
+.wrap{max-width:880px;margin:0 auto;padding:48px 16px 64px}
+h1{font-size:32px;margin:0 0 4px;letter-spacing:.06em}
+.lead{color:var(--sub);margin:0 0 32px;font-size:14px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:16px}
+a.card{display:flex;flex-direction:column;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:20px;color:inherit;text-decoration:none;transition:transform .15s,border-color .15s}
+a.card:hover{transform:translateY(-3px);border-color:var(--acc)}
+.tag{font-size:11px;color:var(--acc);font-weight:700;letter-spacing:.1em}
+.card h2{font-size:20px;margin:4px 0 8px}
+.card p{font-size:13px;color:var(--sub);margin:0 0 14px;flex:1}
+.play{font-size:13px;font-weight:700;color:var(--acc)}
+footer{margin-top:40px;font-size:12px;color:var(--sub)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>ミニゲーム置き場</h1>
+  <p class="lead">ブラウザですぐ遊べる小さなゲームたち。PCでもスマホでも。</p>
+  <div class="grid">
+    <a class="card" href="ane_kyoshu.html">
+      <span class="tag">操作パニック</span>
+      <h2>姉の路上教習</h2>
+      <p>助手席の姉が、ややこしい指示を出してくる。言われた通りにハンドル・ボタン・レバーを操作せよ。</p>
+      <span class="play">遊ぶ →</span>
+    </a>
+    <a class="card" href="nezou_buster.html">
+      <span class="tag">3Dアクション</span>
+      <h2>寝相バスター</h2>
+      <p>寝相が最悪な人を、ベッドを動かして守れ！ 転がり落ちる前に、もう片方のベッドで受け止める。</p>
+      <span class="play">遊ぶ →</span>
+    </a>
+    <a class="card" href="kenkyo_othello.html">
+      <span class="tag">対戦ボード</span>
+      <h2>県境オセロ</h2>
+      <p>県境の交わる74の点が盤面。置いた石から自分の石へ伸びる帯で、相手の石をひっくり返す。</p>
+      <span class="play">遊ぶ →</span>
+    </a>
+  </div>
+  <footer>地図データ：jpn-atlas（国土地理院 地球地図日本をもとに作成）</footer>
+</div>
+</body>
+</html>
