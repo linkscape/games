@@ -1,0 +1,779 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>北海道脱出</title>
+<style>
+:root{
+  --bg:#0b1020;--panel:#121a30;--panel2:#18223d;--line:#2a3658;
+  --amber:#ffb627;--amber2:#ffd27a;--ink:#e8ecf6;--mute:#8d98b8;
+  --red:#ff4d5e;--green:#3ddc97;--blue:#4aa8ff;--sea:#0e2a4a;--land:#25324f;
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--ink);font-family:"Hiragino Kaku Gothic ProN","Noto Sans JP","Yu Gothic UI","Meiryo",sans-serif;}
+button{font:inherit;color:inherit;cursor:pointer}
+.mono{font-family:"SF Mono","Consolas","Menlo",monospace}
+#app{max-width:1200px;margin:0 auto;padding:12px 16px 40px}
+.screen{display:none}.screen.on{display:block}
+
+/* title */
+#title{text-align:center;padding-top:28px}
+.logo{font-size:clamp(30px,6vw,56px);font-weight:900;letter-spacing:.06em;color:var(--amber);text-shadow:0 0 18px rgba(255,182,39,.35)}
+.sub{color:var(--mute);margin:8px 0 26px}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px;max-width:820px;margin:0 auto}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:20px;text-align:left}
+.card h2{margin:0 0 6px;font-size:20px}
+.card p{color:var(--mute);font-size:14px;line-height:1.7;margin:0 0 14px}
+.btn{background:var(--amber);color:#1a1200;border:0;border-radius:10px;padding:11px 18px;font-weight:800}
+.btn:hover{filter:brightness(1.08)}
+.btn.ghost{background:transparent;color:var(--ink);border:1px solid var(--line)}
+.btn.red{background:var(--red);color:#fff}
+.times{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 14px}
+.times button{background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:6px 10px;font-size:13px}
+.times button.sel{border-color:var(--amber);color:var(--amber)}
+.note{font-size:12px;color:var(--mute);max-width:820px;margin:22px auto 0;line-height:1.7;text-align:left}
+
+/* board */
+#board{max-width:760px;margin:20px auto}
+.fids{background:#05070d;border:2px solid #222;border-radius:10px;padding:14px;box-shadow:0 0 0 6px #111 inset}
+.fids h3{margin:0 0 10px;color:var(--amber);font-size:16px;display:flex;justify-content:space-between}
+.frow{display:grid;grid-template-columns:56px 1fr 130px 70px;white-space:nowrap;gap:8px;padding:5px 4px;border-bottom:1px solid #151a26;font-size:15px}
+.frow .st{color:var(--green);font-weight:700}
+.frow .st.x{color:var(--red);animation:flip .25s}
+@keyframes flip{0%{transform:scaleY(0)}100%{transform:scaleY(1)}}
+.storm{color:var(--mute);text-align:center;margin:14px 0}
+
+/* game */
+.hud{display:flex;flex-wrap:wrap;gap:10px;align-items:center;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:10px 14px;margin-bottom:12px}
+.clock{font-size:28px;font-weight:800;color:var(--amber);letter-spacing:.04em}
+.hud .k{font-size:11px;color:var(--mute)}
+.hud .v{font-size:15px;font-weight:700}
+.hud .cell{display:flex;flex-direction:column;min-width:80px}
+.bar{width:110px;height:8px;background:#0005;border-radius:4px;overflow:hidden;margin-top:4px}
+.bar i{display:block;height:100%;background:linear-gradient(90deg,var(--green),var(--amber),var(--red))}
+.flags{display:flex;gap:6px;flex-wrap:wrap;margin-left:auto}
+.flag{font-size:11px;border:1px solid var(--line);border-radius:20px;padding:3px 8px;color:var(--mute)}
+.flag.on{border-color:var(--green);color:var(--green)}
+.grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.15fr);gap:12px}
+@media(max-width:860px){.grid{grid-template-columns:1fr}.grid>.mapbox{order:2}.mapbox svg{max-height:60vh}}
+.mapbox{background:var(--sea);border:1px solid var(--line);border-radius:12px;overflow:hidden;position:relative}
+.mapbox svg{display:block;width:100%;height:auto;max-height:76vh}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px}
+.loc{font-size:22px;font-weight:900}
+.locdesc{color:var(--mute);font-size:13px;margin:4px 0 10px;line-height:1.6}
+.sect{font-size:12px;color:var(--amber);margin:12px 0 6px;letter-spacing:.1em}
+.opt{display:grid;grid-template-columns:30px 1fr auto;gap:8px;align-items:center;width:100%;text-align:left;background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:9px 10px;margin-bottom:6px}
+.opt:hover:not(:disabled){border-color:var(--amber)}
+.opt:disabled{opacity:.45;cursor:not-allowed}
+.opt .ic{font-size:20px;text-align:center}
+.opt .nm{font-weight:700;font-size:14px}
+.opt .dt{font-size:12px;color:var(--mute);margin-top:2px}
+.opt .wn{font-size:12px;color:var(--red);margin-top:2px}
+.opt .nt{font-size:12px;color:var(--blue);margin-top:2px}
+.opt .rt{text-align:right;font-size:12px;white-space:nowrap}
+.badge{display:inline-block;font-size:11px;border-radius:6px;padding:1px 6px;margin-left:4px;font-weight:700}
+.b-ok{background:#3ddc9722;color:var(--green)}.b-x{background:#ff4d5e22;color:var(--red)}
+.b-d{background:#ffb62722;color:var(--amber)}.b-q{background:#8d98b822;color:var(--mute)}
+.log{margin-top:12px;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:10px 14px;max-height:220px;overflow:auto;font-size:13px;line-height:1.7}
+.log .tm{color:var(--amber);margin-right:8px}
+.log .bad{color:var(--red)}.log .good{color:var(--green)}
+.toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:#000c;border:1px solid var(--amber);color:var(--ink);padding:10px 16px;border-radius:10px;max-width:90vw;font-size:14px;z-index:50;opacity:0;transition:opacity .3s;pointer-events:none}
+.toast.on{opacity:1}
+
+/* modal */
+.modal{position:fixed;inset:0;background:#000b;display:none;align-items:center;justify-content:center;z-index:40;padding:16px}
+.modal.on{display:flex}
+.mbox{background:var(--panel);border:1px solid var(--amber);border-radius:16px;max-width:620px;width:100%;padding:22px;max-height:90vh;overflow:auto}
+.rank{font-size:64px;font-weight:900;color:var(--amber);line-height:1}
+.mbox h2{margin:6px 0 4px}
+.route{font-size:13px;line-height:1.8;color:var(--mute);border-top:1px solid var(--line);margin-top:12px;padding-top:10px}
+.route b{color:var(--ink)}
+
+/* swim */
+#swim .wrap{display:flex;flex-direction:column;align-items:center;gap:10px}
+#swimCv{background:#0a2340;border-radius:12px;border:1px solid var(--line);width:min(420px,100%);height:auto;touch-action:none}
+.pads{display:flex;gap:12px;width:min(420px,100%)}
+.pads button{flex:1;padding:22px 0;font-size:18px;font-weight:900;border-radius:12px;border:1px solid var(--line);background:var(--panel2);user-select:none;-webkit-user-select:none}
+.pads button:active{background:var(--amber);color:#000}
+.swhelp{font-size:12px;color:var(--mute);text-align:center;max-width:420px;line-height:1.7}
+</style>
+</head>
+<body>
+<div id="app">
+
+<!-- TITLE -->
+<section id="title" class="screen on">
+  <div class="logo">北海道脱出</div>
+  <div class="sub">― 新千歳、全便欠航。あなたは今日中に東京へ帰れるか ―</div>
+  <div class="cards">
+    <div class="card">
+      <h2>🚄 脱出モード</h2>
+      <p>爆弾低気圧で新千歳空港発の便が全便欠航。鉄道・フェリー・他空港・夜行バスを駆使して東京を目指す。欠航が決まった時刻を選んでください。</p>
+      <div class="times" id="startTimes"></div>
+      <button class="btn" id="goEscape">欠航を知る</button>
+    </div>
+    <div class="card">
+      <h2>🏊 津軽海峡を泳いで渡る</h2>
+      <p>汐首岬から本州・大間崎まで直線約18km。世界七大海峡のひとつ、潮流は激しく、水温は低い。<br><b style="color:var(--red)">※絶対にクリアできません。</b></p>
+      <button class="btn red" id="goSwim">それでも泳ぐ</button>
+    </div>
+  </div>
+  <div class="note">
+    時刻はニコニコ大百科「飛行機欠航時に北海道から脱出する方法」の掲載例（2025年ダイヤ）と、新千歳→羽田の2026年10月の時刻表をもとにしています。ゲーム内容が大きく崩れないよう、一部の列車の時刻・号数・運賃は概算です。また、欠航や遅延はランダムに発生します。実際に移動するときは、必ず各社の最新情報を確認してください。悪天候の日に無理な移動はせず、安全を最優先にしてください。
+  </div>
+</section>
+
+<!-- BOARD -->
+<section id="board" class="screen">
+  <div class="fids mono">
+    <h3><span>新千歳空港 出発 DEPARTURES → 東京/羽田</span><span id="bdClock"></span></h3>
+    <div id="bdRows"></div>
+  </div>
+  <div class="storm" id="bdMsg">🌀 発達した低気圧の影響で、天候調査中…</div>
+  <div style="text-align:center"><button class="btn" id="bdGo" style="display:none">北海道から脱出する</button></div>
+</section>
+
+<!-- GAME -->
+<section id="game" class="screen">
+  <div class="hud">
+    <div class="cell"><span class="k">現在時刻</span><span class="clock mono" id="hClock"></span></div>
+    <div class="cell"><span class="k">現在地</span><span class="v" id="hLoc"></span></div>
+    <div class="cell"><span class="k">出費</span><span class="v mono" id="hCost"></span></div>
+    <div class="cell"><span class="k">疲労</span><span class="bar"><i id="hFat"></i></span></div>
+    <div class="flags" id="hFlags"></div>
+  </div>
+  <div class="grid">
+    <div class="mapbox"><svg id="map" viewBox="0 0 560 760"></svg></div>
+    <div>
+      <div class="panel">
+        <div class="loc" id="pLoc"></div>
+        <div class="locdesc" id="pDesc"></div>
+        <div id="pOpts"></div>
+      </div>
+      <div class="log" id="log"></div>
+    </div>
+  </div>
+</section>
+
+<!-- SWIM -->
+<section id="swim" class="screen">
+  <div class="wrap">
+    <canvas id="swimCv" width="420" height="620"></canvas>
+    <div class="pads"><button id="padL">左手 ◀</button><button id="padR">▶ 右手</button></div>
+    <div class="swhelp">左手と右手を交互に押してクロールで進む（キーボードなら ← → / A D）。<br>潮流は東の太平洋へ流れている。左手で漕ぐと西に寄れる。</div>
+  </div>
+</section>
+</div>
+
+<div class="modal" id="modal"><div class="mbox" id="mbox"></div></div>
+<div class="toast" id="toast"></div>
+
+<script>
+"use strict";
+/* ====================== utilities ====================== */
+const $=s=>document.querySelector(s);
+const T=(s,d=0)=>{const[h,m]=s.split(':').map(Number);return d*1440+h*60+m;};
+const WD=['金','土','日','月','火'];
+const pad=n=>String(n).padStart(2,'0');
+function fmt(t){const d=Math.floor(t/1440),m=((t%1440)+1440)%1440;return `10/${23+d}(${WD[d]}) ${pad(Math.floor(m/60))}:${pad(m%60)}`;}
+function hm(t){const m=((t%1440)+1440)%1440;const d=Math.floor(t/1440);return (d>0?`翌${d>1?'々':''}`:'')+`${pad(Math.floor(m/60))}:${pad(m%60)}`;}
+function dur(m){m=Math.round(m);if(m<60)return m+'分';return Math.floor(m/60)+'時間'+(m%60?m%60+'分':'');}
+const yen=n=>'¥'+n.toLocaleString();
+const rnd=Math.random;
+function show(id){document.querySelectorAll('.screen').forEach(s=>s.classList.toggle('on',s.id===id));window.scrollTo(0,0);}
+let toastTimer;
+function toast(msg,ms=2600){const el=$('#toast');el.innerHTML=msg;el.classList.add('on');clearTimeout(toastTimer);toastTimer=setTimeout(()=>el.classList.remove('on'),ms);}
+
+/* ====================== nodes ====================== */
+// hk: 北海道内かどうか
+const N={
+ CTS:{n:'新千歳空港',lon:141.69,lat:42.77,hk:1,d:'全便欠航で振替カウンターは長蛇の列。快速エアポートで南千歳まで3分、札幌まで約37分。'},
+ MCH:{n:'南千歳駅',lon:141.66,lat:42.86,hk:1,hotel:{p:.25,c:12000,nm:'千歳のホテル'},d:'特急の乗換駅。函館行きは「北斗」。おおぞら・とかちは逆方向（東）へ向かうので注意。'},
+ SPK:{n:'札幌駅',lon:141.35,lat:43.07,hk:1,hotel:{p:.5,c:9800,nm:'札幌のホテル'},d:'北海道の中心。旭川行き特急、丘珠空港、小樽港、函館行き夜行バスへの起点。'},
+ OKD:{n:'丘珠空港',lon:141.42,lat:43.14,hk:1,d:'札幌市内の小さな空港。新千歳と天候が似ているので欠航しやすい。振替客も殺到しがち。'},
+ TMK:{n:'苫小牧駅',lon:141.6,lat:42.64,hk:1,hotel:{p:.8,c:7500,nm:'苫小牧のビジネスホテル（穴場）'},d:'フェリーターミナルへはタクシーで。苫小牧周辺のホテルは比較的穴場。'},
+ TMW:{n:'苫小牧西港',lon:141.5,lat:42.6,hk:1,d:'八戸・仙台・大洗行きのフェリーが出る。悪天候だと船も欠航しやすい。'},
+ TME:{n:'苫小牧東港',lon:141.84,lat:42.6,hk:1,d:'新日本海フェリー（敦賀・秋田・新潟）のりば。'},
+ OTP:{n:'小樽港',lon:141.0,lat:43.2,hk:1,d:'新潟・舞鶴行きの新日本海フェリー。舞鶴ルートならサンライズ瀬戸・出雲に乗り継げる。'},
+ AKS:{n:'旭川駅',lon:142.36,lat:43.77,hk:1,hotel:{p:.7,c:8000,nm:'旭川のホテル'},d:'旭川空港へは連絡バスで約35分。'},
+ AKJ:{n:'旭川空港',lon:142.45,lat:43.66,hk:1,d:'欠航率が低いと言われる空港。羽田行き最終は19:55。'},
+ OBS:{n:'帯広駅',lon:143.2,lat:42.92,hk:1,hotel:{p:.7,c:8000,nm:'帯広のホテル'},d:'函館とは逆方向。帯広空港の羽田行き最終は19:50。'},
+ OBO:{n:'帯広空港',lon:143.22,lat:42.73,hk:1,d:'とかち帯広空港。'},
+ KUS:{n:'釧路駅',lon:144.38,lat:42.99,hk:1,hotel:{p:.7,c:8000,nm:'釧路のホテル'},d:'道東。函館からは最も遠い場所のひとつ。'},
+ KUH:{n:'釧路空港',lon:144.19,lat:43.05,hk:1,d:'たんちょう釧路空港。'},
+ MMB:{n:'女満別空港',lon:144.16,lat:43.88,hk:1,d:'オホーツク紋別…ではなく女満別。'},
+ HMR:{n:'東室蘭駅',lon:140.98,lat:42.35,hk:1,hotel:{p:.7,c:7800,nm:'室蘭のホテル'},d:'すずらんの終点。ここで北斗に乗り換えれば被害は小さい。'},
+ OSB:{n:'長万部駅',lon:140.35,lat:42.51,hk:1,hotel:{p:.2,c:7000,nm:'長万部温泉の宿'},d:'山線と海線が合流する駅。かにめしの町。'},
+ HKA:{n:'函館空港',lon:140.82,lat:41.77,hk:1,d:'函館空港。函館駅へはバスで約20分。'},
+ HKD:{n:'函館駅',lon:140.73,lat:41.77,hk:1,hotel:{p:.6,c:8500,nm:'函館のホテル'},d:'目の前は津軽海峡。対岸の下北半島が見える…気がする。'},
+ SHH:{n:'新函館北斗駅',lon:140.62,lat:41.92,hk:1,hotel:{p:.4,c:9000,nm:'駅前のホテル'},d:'北海道新幹線の起点。ここから青函トンネルを抜けて本州へ。'},
+ SAO:{n:'新青森駅',lon:140.69,lat:40.83,hotel:{p:.7,c:7500,nm:'青森のホテル'},d:'本州上陸！ あとは南へ下るだけ。'},
+ HCP:{n:'八戸港',lon:141.53,lat:40.56,d:'本州上陸！ 八戸駅へはシャトルバスで。'},
+ HCS:{n:'八戸駅',lon:141.43,lat:40.5,hotel:{p:.7,c:7500,nm:'八戸のホテル'},d:'東北新幹線 八戸駅。'},
+ MRK:{n:'盛岡駅',lon:141.14,lat:39.7,hotel:{p:.6,c:7500,nm:'盛岡のホテル'},d:'東京行きの夜行バスが出る。'},
+ SDS:{n:'仙台駅',lon:140.88,lat:38.26,hotel:{p:.6,c:8000,nm:'仙台のホテル'},d:'仙台からは東京行きの夜行バスがある。'},
+ SDP:{n:'仙台港',lon:141.03,lat:38.27,d:'太平洋フェリーの仙台港。'},
+ AKP:{n:'秋田港',lon:140.07,lat:39.76,d:'新日本海フェリー秋田港。'},
+ AKT:{n:'秋田駅',lon:140.12,lat:39.72,d:'秋田新幹線こまちの始発駅。'},
+ NGP:{n:'新潟港',lon:139.07,lat:37.95,d:'新潟フェリーターミナル。'},
+ NGS:{n:'新潟駅',lon:139.06,lat:37.91,d:'上越新幹線 新潟駅。'},
+ OAP:{n:'大洗港',lon:140.58,lat:36.31,d:'茨城県・大洗。水戸まではバス。'},
+ MTO:{n:'水戸駅',lon:140.48,lat:36.37,d:'特急ときわで東京へ。'},
+ TRP:{n:'敦賀港',lon:136.06,lat:35.68,d:'福井県・敦賀。ここからが長い。'},
+ TRS:{n:'敦賀駅',lon:136.07,lat:35.64,d:'在来線で米原へ。'},
+ MBR:{n:'米原駅',lon:136.29,lat:35.31,d:'東海道新幹線に乗り換え。'},
+ NGY:{n:'名古屋駅',lon:136.88,lat:35.17,d:'名古屋。東京行きの夜行バスもある。'},
+ KMK:{n:'県営名古屋空港',lon:136.93,lat:35.26,d:'小牧。名古屋駅へはバスで。'},
+ SZO:{n:'静岡空港',lon:138.19,lat:34.8,d:'富士山静岡空港。'},
+ SZS:{n:'静岡駅',lon:138.39,lat:34.97,d:'東海道新幹線 静岡駅。'},
+ MZP:{n:'舞鶴港',lon:135.38,lat:35.5,d:'京都府・舞鶴。神戸三宮行きの連絡バスがある。'},
+ SNN:{n:'三ノ宮駅',lon:135.19,lat:34.69,hotel:{p:.7,c:8000,nm:'神戸のホテル'},d:'サンライズ瀬戸・出雲が0:11に来る。みどりの券売機は23:30まで。'},
+ ICN:{n:'仁川空港（ソウル）',lon:135.5,lat:38.4,d:'国際線乗り継ぎ。韓国で空港の外には出ない。'},
+ NRT:{n:'成田空港',lon:140.39,lat:35.77,d:'日本に帰ってきた。'},
+ HND:{n:'羽田空港',lon:139.78,lat:35.55,goal:1},
+ TYO:{n:'東京駅',lon:139.77,lat:35.68,goal:1},
+ BSS:{n:'バスタ新宿',lon:139.62,lat:35.72,goal:1},
+};
+/* projection */
+const PX=lon=>(lon-134.6)*48, PY=lat=>(45.9-lat)*62;
+
+/* ====================== edges ====================== */
+const E=[]; let eid=0;
+const SEAT_TYPES={shinkansen:1,ltd:1};
+function S(name,type,from,to,dep,arr,cost,o={}){E.push(Object.assign({id:'e'+(eid++),name,type,from,to,dep,arr,cost,ser:o.ser||(name+from+to)},o));}
+// --- 快速エアポート（約12分間隔）
+for(const d of [0,1]){
+  for(let t=T('6:00',d);t<=T('23:20',d);t+=12){
+    S('快速エアポート','train','CTS','MCH',t,t+3,0,{ser:'apMCH'});
+    if(!(d===0&&t===T('22:54')))S('快速エアポート','train','CTS','SPK',t,t+37,1150,{ser:'apSPK'});
+    S('快速エアポート','train','MCH','SPK',t+3,t+37,1150,{ser:'apMS'});
+    S('快速エアポート','train','SPK','MCH',t+2,t+33,1150,{ser:'apSM'});
+    S('快速エアポート','train','SPK','CTS',t+2,t+36,1150,{ser:'apSC'});
+    S('快速エアポート','train','MCH','CTS',t+6,t+9,0,{ser:'apMC'});
+  }
+}
+S('快速エアポート193号','train','CTS','SPK',T('22:53'),T('23:32'),1150,{ser:'apSPK',note:'札幌0:00発の夜行バスに間に合う'});
+// --- 特急 北斗（南千歳発時刻を基準に各駅を生成）
+const HOKUTO=[['北斗12号',T('13:17')],['北斗14号',T('14:17')],['北斗16号',T('15:17')],['北斗18号',T('16:17')],['北斗20号',T('17:26')],['北斗（最終）',T('19:18')],['北斗2号',T('6:27',1),T('9:16',1)]];
+const HST=[['SPK',-29,0],['MCH',0,.15],['TMK',17,.25],['HMR',58,.45],['OSB',113,.7],['SHH',167,1]];
+for(const [nm,m,fin] of HOKUTO){
+  const rk='hk_'+nm;
+  for(let i=0;i<HST.length-1;i++){
+    const [f,fo,ff]=HST[i];
+    const targets = (f==='SPK'||f==='MCH')?['TMK','SHH']:['SHH'];
+    for(const to of targets){
+      const j=HST.findIndex(s=>s[0]===to); if(j<=i)continue;
+      const arr=(to==='SHH'&&fin)?fin:m+HST[j][1];
+      S(`特急${nm}`,'ltd',f,to,m+fo,arr,to==='SHH'?9000:1500,{rk,risk:{c:.06,d:[.4,35]},df:ff,af:HST[j][2],seat:1,ser:'hk'+f+to+nm});
+    }
+  }
+}
+// --- すずらん（南千歳→苫小牧→東室蘭）
+for(let k=0;k<9;k++){const m=T('13:48')+k*60;const nm=`すずらん${k*2-6>0?k*2-6:''}号`.replace('すずらん号','すずらん');
+  const name=`特急すずらん${4+k*0+ (k)}号`;
+  const rk='sz'+k;
+  S(`特急すずらん${2+k*1}号`,'ltd','SPK','TMK',m-29,m+19,1500,{rk,seat:1,ser:'szST'+k});
+  S(`特急すずらん${2+k*1}号`,'ltd','MCH','TMK',m,m+19,900,{rk,seat:1,ser:'szMT'+k});
+  S(`特急すずらん${2+k*1}号`,'ltd','MCH','HMR',m,m+62,2500,{rk,seat:1,ser:'szMH'+k,note:'東室蘭で北斗に乗り換え可'});
+}
+// すずらん10号は記事どおり 19:48
+// --- おおぞら・とかち（罠）
+[['特急とかち',T('13:52'),'OBS',125],['特急おおぞら',T('15:52'),'KUS',230],['特急とかち',T('17:52'),'OBS',125],['特急おおぞら',T('19:52'),'KUS',230]].forEach(([nm,m,to,dd],k)=>{
+  const w='⚠ 東（帯広・釧路方面）行き。函館とは逆方向！';
+  if(to==='KUS'){S(nm+'（釧路行）','ltd','MCH','OBS',m,m+125,4500,{seat:1,warn:w,ser:'oz'+k+'o'});}
+  S(nm+(to==='KUS'?'（釧路行）':'（帯広行）'),'ltd','MCH',to,m,m+dd,to==='KUS'?6500:4500,{seat:1,warn:w,ser:'oz'+k});
+});
+// --- ライラック/カムイ（札幌→旭川）
+for(let t=T('12:00');t<=T('22:00');t+=30){const isL=(t%60===0);S(isL?`特急ライラック${(t-T('12:00'))/60*2+19}号`:'特急カムイ','ltd','SPK','AKS',t,t+85,5000,{seat:1,ser:'lilac'+(isL?'L':'K'),note:t===T('16:00')?'記事推奨：旭川の最終便に乗るならこれ':''});}
+// --- 丘珠発
+S('JAL2869便（→釧路）','plane','OKD','KUH',T('16:45'),T('17:35'),22000,{risk:{c:.75},cut:20,note:'釧路で19:40発の羽田行きに接続'});
+S('JAL2727便（→女満別）','plane','OKD','MMB',T('17:55'),T('18:45'),22000,{risk:{c:.75},cut:20,note:'女満別で20:00発の羽田行きに接続'});
+S('JAL2755便（→函館）','plane','OKD','HKA',T('18:05'),T('18:45'),20000,{risk:{c:.75},cut:20,note:'函館で19:30発の羽田行きに接続'});
+S('JAL2757便（→函館）','plane','OKD','HKA',T('19:20'),T('20:00'),20000,{risk:{c:.75},cut:20,note:'接続便なし。函館駅→新函館北斗→はやて100号へ'});
+S('FDA176便（→静岡）','plane','OKD','SZO',T('17:40'),T('19:35'),38000,{risk:{c:.75},cut:20,note:'夏ダイヤ（10/24まで）'});
+S('FDA398便（→名古屋小牧）','plane','OKD','KMK',T('18:35'),T('20:25'),38000,{risk:{c:.75},cut:20,note:'夏ダイヤ（10/24まで）'});
+S('JAL544便','plane','KUH','HND',T('19:40'),T('21:20'),40000,{risk:{c:.4},cut:20});
+S('JAL566便','plane','MMB','HND',T('20:00'),T('21:50'),40000,{risk:{c:.35},cut:20});
+S('JAL588便','plane','HKA','HND',T('19:30'),T('20:50'),35000,{risk:{c:.5},cut:20});
+S('函館空港連絡バス','bus','HKA','HKD',T('20:10'),T('20:30'),500,{ser:'hkbus'});
+S('函館空港連絡バス','bus','HKA','HKD',T('20:20'),T('20:40'),500,{ser:'hkbus'});
+S('はこだてライナー','train','HKD','SHH',T('21:16'),T('21:38'),460,{note:'はやて100号に接続'});
+// --- 旭川・帯広
+S('AIRDO（最終手前）','plane','AKJ','HND',T('19:30'),T('21:15'),39000,{risk:{c:.25},cut:20});
+S('ANA（最終手前）','plane','AKJ','HND',T('19:40'),T('21:25'),40000,{risk:{c:.25},cut:20});
+S('JAL 旭川最終便','plane','AKJ','HND',T('19:55'),T('21:40'),40000,{risk:{c:.25},cut:20});
+S('JAL 帯広最終便','plane','OBO','HND',T('19:50'),T('21:25'),40000,{risk:{c:.5},cut:20});
+// --- 新函館北斗
+S('はやぶさ42号','shinkansen','SHH','TYO',T('18:40'),T('23:04'),23000,{seat:1,risk:{c:.04},note:'東京直通の最終'});
+S('はやぶさ96号（仙台行）','shinkansen','SHH','SDS',T('19:41'),T('23:01'),17000,{seat:1,note:'仙台から夜行バス'});
+S('はやて98号（盛岡行）','shinkansen','SHH','MRK',T('20:43'),T('22:48'),14000,{seat:1,note:'盛岡から夜行バス'});
+S('はやて100号（新青森行）','shinkansen','SHH','SAO',T('21:57'),T('22:58'),7000,{seat:1,note:'日曜運休。今日は金曜なので走る'});
+S('はやぶさ10号','shinkansen','SHH','TYO',T('6:39',1),T('11:04',1),23000,{seat:1});
+S('はやぶさ16号','shinkansen','SHH','TYO',T('9:35',1),T('14:08',1),23000,{seat:1});
+S('はやぶさ16号（盛岡まで・特定特急券で立席）','shinkansen','SHH','MRK',T('9:35',1),T('11:52',1),13000,{stand:1,note:'記事筆者の本音ルート：盛岡でやまびこ56号へ'});
+S('やまびこ56号（自由席）','shinkansen','MRK','TYO',T('12:08',1),T('15:24',1),15000,{stand:.5});
+S('はやぶさ4号','shinkansen','SAO','TYO',T('6:17',1),T('9:23',1),18000,{seat:1});
+// --- フェリー
+S('シルバーフェリー（シルバープリンセス）','ship','TMW','HCP',T('21:15'),T('4:45',1),6000,{risk:{c:.45},cut:30,note:'最有力。八戸から東京9:23着'});
+S('シルバーフェリー 23:59便','ship','TMW','HCP',T('23:59'),T('7:30',1),6000,{risk:{c:.5},cut:30});
+S('太平洋フェリー（仙台行）','ship','TMW','SDP',T('19:00'),T('10:00',1),9000,{risk:{c:.3},cut:40});
+S('さんふらわあ 夕方便（大洗行）','ship','TMW','OAP',T('18:45'),T('14:00',1),11000,{risk:{c:.3},cut:40});
+S('さんふらわあ 深夜便（大洗行）','ship','TMW','OAP',T('1:30',1),T('19:30',1),11000,{risk:{c:.3},cut:40});
+S('新日本海フェリー（敦賀直行）','ship','TME','TRP',T('23:30'),T('20:30',1),11000,{risk:{c:.3},cut:40,note:'東京着は3日目の朝…'});
+S('新日本海フェリー（秋田経由新潟行）','ship','TME','AKP',T('19:30'),T('7:35',1),6000,{risk:{c:.3},cut:40,note:'秋田港で下船'});
+S('新日本海フェリー（新潟行）','ship','OTP','NGP',T('17:00'),T('9:15',1),7000,{risk:{c:.3},cut:40});
+S('新日本海フェリー（舞鶴行）','ship','OTP','MZP',T('23:30'),T('21:15',1),11000,{risk:{c:.3},cut:40,note:'舞鶴→三宮→サンライズで3日目の朝に東京'});
+// --- 本州側の乗り継ぎ
+S('シャトルバス','bus','HCP','HCS',T('5:40',1),T('6:19',1),400);
+S('シャトルバス＋八戸線（本八戸乗換）','bus','HCP','HCS',T('7:45',1),T('8:55',1),700);
+S('はやぶさ4号','shinkansen','HCS','TYO',T('6:42',1),T('9:23',1),16000,{seat:1});
+S('はやぶさ（後続便）','shinkansen','HCS','TYO',T('9:07',1),T('11:48',1),16000,{seat:1});
+S('仙台港連絡バス','bus','SDP','SDS',T('10:20',1),T('11:01',1),500);
+S('はやぶさ・こまち14号','shinkansen','SDS','TYO',T('11:29',1),T('13:04',1),11000,{seat:1});
+S('ドリーム仙台・新宿号','bus','SDS','BSS',T('23:30'),T('5:38',1),5500,{night:1,note:'王子5:08・池袋5:18にも停車'});
+S('ドリーム仙台・東京号','bus','SDS','TYO',T('23:45'),T('6:20',1),5500,{night:1});
+S('岩手きずな号','bus','MRK','TYO',T('22:55'),T('6:50',1),6500,{night:1});
+S('MEX三沢 MM02便','bus','MRK','BSS',T('23:10'),T('6:40',1),6500,{night:1});
+S('秋田港連絡バス','bus','AKP','AKT',T('8:22',1),T('8:45',1),500);
+S('こまち14号','shinkansen','AKT','TYO',T('9:12',1),T('13:04',1),18000,{seat:1});
+S('新潟港接続バス','bus','NGP','NGS',T('9:38',1),T('9:55',1),300);
+S('とき316号','shinkansen','NGS','TYO',T('10:24',1),T('12:28',1),10500,{seat:1});
+S('茨城交通バス','bus','OAP','MTO',T('14:50',1),T('15:27',1),500,{ser:'oarai1'});
+S('特急ときわ74号','train','MTO','TYO',T('15:52',1),T('17:13',1),4000);
+S('茨城交通バス','bus','OAP','MTO',T('20:15',1),T('20:48',1),500,{ser:'oarai2'});
+S('特急ときわ84号','train','MTO','TYO',T('20:53',1),T('22:12',1),4000);
+S('敦賀港連絡バス','bus','TRP','TRS',T('20:45',1),T('21:00',1),300);
+S('北陸本線 普通','train','TRS','MBR',T('21:12',1),T('22:08',1),1000);
+S('こだま768号','shinkansen','MBR','NGY',T('22:41',1),T('23:05',1),3000);
+S('ミルキーウェイエクスプレス','bus','NGY','TYO',T('23:45',1),T('5:18',2),6000,{night:1});
+S('神戸三宮行き連絡バス','bus','MZP','SNN',T('21:30',1),T('23:26',1),2500);
+S('サンライズ瀬戸・出雲','train','SNN','TYO',T('0:11',2),T('7:08',2),16000,{req:'sunrise',night:1});
+S('のぞみ（新神戸始発）','shinkansen','SNN','TYO',T('6:00',2),T('8:57',2),15000,{seat:1});
+S('静鉄バス','bus','SZO','SZS',T('20:15'),T('20:57'),1000);
+S('ひかり522号','shinkansen','SZS','TYO',T('21:04'),T('22:27'),6500,{seat:1});
+S('名鉄バス','bus','KMK','NGY',T('21:10'),T('21:45'),700);
+S('のぞみ62号','shinkansen','NGY','TYO',T('21:56'),T('23:32'),11000,{seat:1});
+S('ミルキーウェイエクスプレス','bus','NGY','TYO',T('23:45'),T('5:18',1),6000,{night:1});
+S('札幌→函館 夜行バス「ニュースター号」','bus','SPK','SHH',T('0:00',1),T('4:53',1),5000,{night:1,note:'盲点のルート。新函館北斗からはやぶさ10号へ'});
+// --- 翌日：国際線乗り継ぎ
+S('チェジュ航空7C1502便（→ソウル仁川）','plane','CTS','ICN',T('11:00',1),T('14:25',1),18000,{req:'passport',risk:{c:.1},cut:60,note:'国内線より空席が取りやすい'});
+S('チェジュ航空7C1121便（→成田）','plane','ICN','NRT',T('16:50',1),T('18:40',1),15000,{req:'passport',cut:30});
+S('成田エクスプレス','train','NRT','TYO',T('19:45',1),T('20:45',1),3070);
+
+/* flexible transfers */
+const F=[];
+function X(name,type,from,to,dur,cost,o={}){F.push(Object.assign({name,type,from,to,dur,cost,flex:1},o));}
+const hour=t=>((t%1440)+1440)%1440/60;
+const night=t=>hour(t)>=22||hour(t)<5;
+X('タクシーで苫小牧西港へ','taxi','CTS','TMW',40,12000);
+X('タクシーで苫小牧駅へ','taxi','CTS','TMK',30,8000);
+X('相乗りタクシーで新函館北斗へ（4人で割り勘）','taxi','CTS','SHH',270,25000,{note:'2025年12月の大雪時に実際に使われた手',fat:25});
+X('レンタカーで新函館北斗へ（乗り捨て）','car','CTS','SHH',250,45000,{avail:t=>hour(t)>=8&&hour(t)<17&&t<1440,warn:'乗り捨て手数料が高額。深夜早朝に返せる店舗はほぼない',fat:30});
+X('振替カウンターに並ぶ','queue','CTS','CTS',0,0,{sp:'counter',warn:'記事いわく「愚策」'});
+X('タクシーで東京まで','taxi','CTS','CTS',5,0,{sp:'taxiRefuse'});
+X('空港ターミナルで夜明かし（マット貸出）','sleep','CTS','CTS',0,0,{sp:'terminal',avail:t=>hour(t)>=21||hour(t)<4});
+X('空港の温泉で仮眠','sleep','CTS','CTS',0,4500,{sp:'onsen',avail:t=>hour(t)>=21||hour(t)<4});
+X('翌日の振替便の空席待ちに賭ける','plane','CTS','HND',0,0,{sp:'standby',avail:t=>t>=T('6:00',1)&&t<=T('12:00',1)});
+X('地下鉄東豊線＋バスで丘珠空港へ','subway','SPK','OKD',40,500,{avail:t=>hour(t)>=6&&hour(t)<23});
+X('バス＋地下鉄で札幌駅へ','bus','OKD','SPK',40,500,{avail:t=>hour(t)>=6&&hour(t)<23});
+X('JR＋バスで小樽港へ','train','SPK','OTP',60,1500,{avail:t=>hour(t)>=6&&hour(t)<22.5});
+X('函館本線（山線）普通列車で函館方面へ','train','SPK','OSB',330,5000,{avail:t=>hour(t)>=6&&hour(t)<16&&t<1440,warn:'⚠ 本数が少なく線形も悪い。記事では「避ける」とされている',fat:20});
+X('タクシーで苫小牧西港へ','taxi','TMK','TMW',15,2500);
+X('タクシーで苫小牧東港へ','taxi','TMK','TME',30,6000);
+X('タクシーで苫小牧駅へ','taxi','TMW','TMK',15,2500);
+X('タクシーで苫小牧西港へ','taxi','TME','TMW',30,6000);
+X('タクシーで苫小牧駅へ','taxi','TME','TMK',30,6000);
+X('JRで札幌駅へ','train','OTP','SPK',60,1500,{avail:t=>hour(t)>=6&&hour(t)<23});
+X('空港連絡バスで旭川空港へ','bus','AKS','AKJ',35,750,{avail:t=>hour(t)>=7&&hour(t)<20});
+X('空港連絡バスで帯広空港へ','bus','OBS','OBO',40,1000,{avail:t=>hour(t)>=7&&hour(t)<20});
+X('空港連絡バスで釧路空港へ','bus','KUS','KUH',45,1000,{avail:t=>hour(t)>=7&&hour(t)<20});
+X('はこだてライナーで新函館北斗へ','train','HKD','SHH',25,460,{avail:t=>hour(t)>=6&&hour(t)<21});
+X('はこだてライナーで函館駅へ','train','SHH','HKD',25,460,{avail:t=>hour(t)>=6&&hour(t)<23});
+X('タクシーで東京まで（約30万円）','taxi','SAO','TYO',560,300000,{warn:'青森→東京の通しタクシー。概算約30万円',fat:40});
+X('タクシーで東京まで','taxi','HKD','HKD',5,0,{sp:'taxiRefuse'});
+X('津軽海峡を泳いで渡る','swim','HKD','HKD',0,0,{sp:'swim',warn:'⚠ 世界七大海峡のひとつ。絶対に無理'});
+X('みどりの窓口で寝台券を先に確保する','ticket','OTP','OTP',10,0,{sp:'sunrise'});
+X('みどりの窓口で寝台券を先に確保する','ticket','SPK','SPK',10,0,{sp:'sunrise'});
+X('みどりの窓口で寝台券を先に確保する','ticket','CTS','CTS',10,0,{sp:'sunrise'});
+
+/* ====================== state ====================== */
+let G=null;
+const START_CHOICES=[['13:30','〜14:30'],['14:45','14:30〜15:30'],['15:45','15:30〜16:30'],['17:30','16:30〜18:30'],['19:30','18:30〜'],['22:15','深夜'],['rand','ランダム']];
+let startSel='rand';
+function rollStatus(e){
+  const k=e.rk||e.id;
+  if(G.status[k])return G.status[k];
+  const r=e.risk||{};const st={c:false,d:0};
+  if(r.c&&rnd()<r.c)st.c=true;
+  if(r.d&&rnd()<r.d[0])st.d=Math.round(5+rnd()*(r.d[1]-5));
+  G.status[k]=st;return st;
+}
+const effDep=e=>{if(!e.risk)return e.dep;const s=rollStatus(e);return e.dep+Math.round((s.d||0)*(e.df||0));};
+const effArr=e=>{if(!e.risk)return e.arr;const s=rollStatus(e);return e.arr+Math.round((s.d||0)*(e.af===undefined?1:e.af));};
+function revealed(e){return G.node===e.from||G.checkedAt!==null;}
+
+function newGame(){
+  let st;
+  if(startSel==='rand'){st=T('13:00')+Math.floor(rnd()*11)*60+Math.floor(rnd()*4)*15;}
+  else st=T(startSel);
+  G={t:st,start:st,node:'CTS',cost:0,fat:10,flags:{seatRes:false,seatTried:false,passport:rnd()<.35,sunrise:false},status:{},checkedAt:null,log:[],route:[],hotelTried:{},over:false,busy:false};
+  // pre-roll so outcomes are fixed for the run
+  E.forEach(e=>{if(e.risk)rollStatus(e);});
+}
+
+/* ====================== flight board ====================== */
+const CTS_HND=`07:30 JAL590|07:30 ANA050|07:40 JAL500|08:00 ADO12|08:15 SKY706|08:30 ANA052|08:50 JAL502|09:00 ADO14|09:30 ANA054|09:45 JAL504|10:25 ADO16|10:30 ANA056|10:40 SKY710|10:45 JAL506|11:20 ADO18|11:25 JAL508|11:30 ANA058|11:40 SKY712|12:00 ANA060|12:20 ADO20|12:25 ANA062|12:50 JAL510|13:15 SKY714|13:30 ANA064|13:30 ADO24|14:00 JAL512|14:30 ANA066|14:40 SKY716|15:00 ADO26|15:05 SKY718|15:10 JAL514|15:30 ANA068|16:00 JAL516|16:00 ANA1104|16:00 ADO28|16:15 SKY720|16:30 ANA070|17:00 JAL518|17:00 ANA1106|17:10 JAL520|17:25 ANA074|18:00 ADO32|18:05 JAL522|18:30 ANA076|19:10 SKY726|19:15 JAL524|19:35 ANA078|20:15 JAL526|20:30 ANA082|20:35 ADO36|21:00 ADO38|21:00 SKY730|21:10 JAL528|21:20 JAL530|21:20 ANA084`.split('|').map(s=>{const[a,b]=s.split(' ');return{t:T(a),f:b};});
+function runBoard(){
+  show('board');
+  $('#bdClock').textContent=fmt(G.t);
+  const list=CTS_HND.filter(f=>f.t>=G.t-30).slice(0,14);
+  if(!list.length)list.push(...CTS_HND.slice(-6));
+  $('#bdRows').innerHTML=list.map((f,i)=>`<div class="frow"><span>${hm(f.t)}</span><span>${f.f.replace(/([A-Z]+)(\d+)/,'$1 $2')}　東京/羽田</span><span class="st" id="fs${i}">${f.t<G.t?'出発済':'定刻'}</span><span style="color:#556">${f.f.startsWith('JAL')?'JAL':f.f.startsWith('ANA')?'ANA':f.f.startsWith('ADO')?'AIRDO':'SKYMARK'}</span></div>`).join('');
+  $('#bdGo').style.display='none';$('#bdMsg').textContent='🌀 発達した低気圧の影響で、天候調査中…';
+  let i=0;
+  const tick=()=>{
+    if(i<list.length){const el=$('#fs'+i);el.textContent='欠航';el.classList.add('x');i++;setTimeout(tick,170);}
+    else{$('#bdMsg').innerHTML=`<b style="color:var(--red)">新千歳空港発着便は本日 全便欠航</b><br>時刻は ${fmt(G.t)}。振替カウンターには長蛇の列。<br>${G.flags.passport?'🛂 カバンにはなぜかパスポートが入っている。':'パスポートは持っていない。'}`;$('#bdGo').style.display='inline-block';}
+  };
+  setTimeout(tick,900);
+}
+
+/* ====================== map ====================== */
+const HOK=[[141.94,45.52],[142.6,44.95],[143.35,44.36],[144.27,44.02],[145.33,44.35],[145.19,44.02],[145.13,43.67],[145.58,43.33],[144.38,42.98],[143.3,42.2],[143.25,41.92],[142.77,42.16],[141.6,42.62],[141.15,42.43],[140.95,42.32],[140.65,42.55],[140.4,42.55],[140.5,42.15],[140.75,42.0],[141.15,41.8],[140.73,41.74],[140.4,41.53],[140.08,41.42],[140.0,41.6],[140.12,41.9],[139.85,42.3],[139.85,42.65],[140.35,43.05],[140.5,43.35],[141.0,43.2],[141.35,43.25],[141.4,43.7],[141.65,43.95],[141.66,44.88],[141.67,45.4]];
+const HON=[[140.35,41.25],[140.65,41.05],[140.74,40.85],[141.13,40.88],[141.2,41.25],[140.91,41.53],[141.46,41.43],[141.4,40.8],[141.55,40.52],[141.98,39.64],[141.9,39.27],[141.6,38.9],[141.5,38.3],[140.95,38.15],[140.95,37.8],[140.98,37.0],[140.6,36.3],[140.86,35.73],[140.4,35.2],[139.85,34.9],[139.9,35.35],[139.78,35.55],[139.65,35.25],[139.15,35.25],[138.85,34.6],[138.75,35.05],[138.22,34.6],[137.3,34.7],[136.9,34.7],[136.9,35.0],[136.6,34.5],[135.8,33.45],[135.1,34.25],[135.4,34.6],[135.0,34.65],[134.7,34.8],[134.6,35.6],[135.38,35.55],[136.05,35.75],[136.7,36.4],[136.75,37.35],[137.3,37.5],[137.0,36.8],[137.6,36.95],[138.4,37.2],[139.05,37.95],[139.55,38.5],[139.83,38.9],[140.05,39.7],[139.7,39.95],[140.0,40.25],[139.93,40.65],[140.2,40.8],[140.35,41.25]];
+const poly=pts=>pts.map(([lo,la])=>`${PX(lo).toFixed(1)},${PY(la).toFixed(1)}`).join(' ');
+const ICON={train:'🚃',ltd:'🚆',shinkansen:'🚄',plane:'✈️',ship:'⛴️',bus:'🚌',taxi:'🚕',car:'🚗',subway:'🚇',queue:'🧍',sleep:'🛌',swim:'🏊',ticket:'🎫',wait:'⏳',phone:'📱',hotel:'🏨',give:'🏳️',danger:'💀'};
+function drawMap(hl){
+  const pairs=new Set();let lines='';
+  for(const e of E.concat(F)){if(e.from===e.to)continue;const k=[e.from,e.to].sort().join('-');if(pairs.has(k))continue;pairs.add(k);
+    const a=N[e.from],b=N[e.to];const col=e.type==='plane'?'#4aa8ff33':e.type==='ship'?'#3ddc9733':'#ffffff1c';
+    lines+=`<line x1="${PX(a.lon)}" y1="${PY(a.lat)}" x2="${PX(b.lon)}" y2="${PY(b.lat)}" stroke="${col}" stroke-width="1" ${e.type==='plane'||e.type==='ship'?'stroke-dasharray="3 3"':''}/>`;}
+  let hls='';(hl||[]).forEach(id=>{const a=N[G.node],b=N[id];hls+=`<line x1="${PX(a.lon)}" y1="${PY(a.lat)}" x2="${PX(b.lon)}" y2="${PY(b.lat)}" stroke="#ffb627" stroke-width="2" opacity=".8"/>`;});
+  const imp=['CTS','SPK','SHH','HKD','AKJ','SAO','HCP','MRK','SDS','TYO','OTP','NGY','SNN','MZP','TRP','OAP','NGP','AKT','KUS','OBS','ICN'];
+  let dots='';for(const[id,n]of Object.entries(N)){const x=PX(n.lon),y=PY(n.lat);const on=(hl||[]).includes(id);
+    dots+=`<circle cx="${x}" cy="${y}" r="${n.goal?5:on?4:2.6}" fill="${n.goal?'#3ddc97':on?'#ffb627':'#aab4d4'}"/>`;
+    if(imp.includes(id)&&!(on===false&&['MCH','TMK','TMW','TME','OKD'].includes(id))||on||id==='TYO')dots+=`<text x="${x+6}" y="${y+4}" font-size="${on?12:10}" fill="${on?'#ffd27a':'#c9d1ea'}" style="paint-order:stroke;stroke:#0e2a4a;stroke-width:3px">${n.n.replace('（ソウル）','')}</text>`;}
+  $('#map').innerHTML=`<rect width="560" height="760" fill="#0e2a4a"/>
+  <polygon points="${poly(HOK)}" fill="#25324f" stroke="#3c4d78"/>
+  <polygon points="${poly(HON)}" fill="#25324f" stroke="#3c4d78"/>
+  <text x="${PX(142.6)}" y="${PY(43.5)}" fill="#3c4d78" font-size="22" font-weight="900">北海道</text>
+  <text x="${PX(140.6)}" y="${PY(41.47)}" fill="#4aa8ff88" font-size="10">津軽海峡</text>
+  <text x="${PX(138.6)}" y="${PY(36.7)}" fill="#3c4d78" font-size="22" font-weight="900">本州</text>
+  ${lines}${hls}${dots}
+  <g id="me" transform="translate(${PX(N[G.node].lon)},${PY(N[G.node].lat)})"><circle r="9" fill="#ffb62744"><animate attributeName="r" values="7;13;7" dur="1.6s" repeatCount="indefinite"/></circle><circle r="5" fill="#ffb627" stroke="#000" stroke-width="1.5"/></g>`;
+}
+
+/* ====================== options ====================== */
+function availableOptions(){
+  const t=G.t,here=G.node,out=[];
+  // scheduled
+  const groups={};
+  for(const e of E){
+    if(e.from!==here)continue;
+    const d=effDep(e);const cut=e.cut||0;
+    if(d-cut<t)continue;
+    if(d-t>18*60)continue; // 18時間先まで
+    (groups[e.ser]=groups[e.ser]||[]).push(e);
+  }
+  for(const k in groups){groups[k].sort((a,b)=>effDep(a)-effDep(b)).slice(0,k.startsWith('ap')||k.startsWith('lilac')?1:2).forEach(e=>out.push(e));}
+  out.sort((a,b)=>effDep(a)-effDep(b));
+  const flex=F.filter(f=>f.from===here&&(!f.avail||f.avail(t)));
+  return {sched:out,flex};
+}
+function optHTML(e,i){
+  const n=N[e.to];let badge='',dis=false,wn=e.warn||'',nt=e.note||'';
+  if(e.flex){
+    const right=e.sp?(e.cost?yen(e.cost):''):`${dur(e.dur)}<br>${e.cost?yen(e.cost):''}`;
+    return `<button class="opt" data-f="${i}"><span class="ic">${ICON[e.type]||'•'}</span><span><div class="nm">${e.name}</div>${e.sp?'':`<div class="dt">→ ${n.n}　${hm(G.t+e.dur)}着</div>`}${wn?`<div class="wn">${wn}</div>`:''}${nt?`<div class="nt">${nt}</div>`:''}</span><span class="rt">${right}</span></button>`;
+  }
+  const d=effDep(e),a=effArr(e);
+  if(e.risk){const s=rollStatus(e);
+    if(!revealed(e))badge='<span class="badge b-q">運行状況？</span>';
+    else if(s.c){badge='<span class="badge b-x">運休・欠航</span>';dis=true;}
+    else if(s.d)badge=`<span class="badge b-d">遅延 約${s.d}分</span>`;
+    else badge='<span class="badge b-ok">運行予定</span>';
+  }
+  if(e.req==='passport'&&!G.flags.passport){dis=true;wn='パスポートがないので乗れない';}
+  if(e.req==='sunrise'&&!G.flags.sunrise){dis=true;wn='寝台券がない（みどりの券売機は23:30で終了）';}
+  const wait=d-G.t;
+  return `<button class="opt" data-e="${e.id}" ${dis?'disabled':''}><span class="ic">${ICON[e.type]}</span><span><div class="nm">${e.name}${badge}</div><div class="dt mono">${hm(d)}発 → ${n.n} ${hm(a)}着${e.cut?`（${e.cut}分前までに手続き）`:''}</div>${wn?`<div class="wn">${wn}</div>`:''}${nt?`<div class="nt">${nt}</div>`:''}</span><span class="rt">${wait>0?'あと'+dur(wait):'まもなく'}<br>${e.cost?yen(e.cost):'—'}</span></button>`;
+}
+function render(){
+  const n=N[G.node];
+  $('#hClock').textContent=fmt(G.t);$('#hLoc').textContent=n.n;$('#hCost').textContent=yen(G.cost);
+  $('#hFat').style.width=Math.min(100,G.fat)+'%';
+  $('#hFlags').innerHTML=[[G.flags.seatRes,'指定席確保'],[G.flags.passport,'パスポート'],[G.flags.sunrise,'寝台券'],[G.checkedAt!==null,'運行情報チェック済']].map(([o,l])=>`<span class="flag ${o?'on':''}">${o?'✓':'✕'} ${l}</span>`).join('');
+  $('#pLoc').textContent='📍 '+n.n;$('#pDesc').textContent=n.d||'';
+  const {sched,flex}=availableOptions();
+  let h='';
+  if(sched.length){h+='<div class="sect">出発便（時刻表）</div>'+sched.map(e=>optHTML(e)).join('');}
+  const fl=flex.map((f)=>optHTML(f,F.indexOf(f))).join('');
+  if(fl)h+='<div class="sect">移動・行動</div>'+fl;
+  // generic actions
+  h+='<div class="sect">その他</div>';
+  if(G.checkedAt===null)h+=`<button class="opt" data-g="phone"><span class="ic">📱</span><span><div class="nm">スマホで各地の運行情報を調べる</div><div class="dt">15分。丘珠・旭川・フェリーなど、行く前に欠航かどうか分かる</div></span><span class="rt">15分</span></button>`;
+  if(!G.flags.seatTried&&n.hk)h+=`<button class="opt" data-g="seat"><span class="ic">🎫</span><span><div class="nm">えきねっとで特急・新幹線の指定席を押さえる</div><div class="dt">5分。早いほど取りやすい。取れないと立ちっぱなし</div></span><span class="rt">5分</span></button>`;
+  h+=`<button class="opt" data-g="wait"><span class="ic">⏳</span><span><div class="nm">30分待つ</div></span><span class="rt">30分</span></button>`;
+  if(n.hotel&&!G.hotelTried[G.node+Math.floor((G.t+300)/1440)])h+=`<button class="opt" data-g="hotel"><span class="ic">🏨</span><span><div class="nm">${n.hotel.nm}を探して泊まる</div><div class="dt">翌朝5:30まで休む。空室があるかは運次第</div></span><span class="rt">${yen(n.hotel.c)}</span></button>`;
+  if(n.hk&&night(G.t))h+=`<button class="opt" data-g="camp"><span class="ic">💀</span><span><div class="nm">駅の外で野宿する</div><div class="wn">⚠ 記事いわく「厳禁」</div></span><span class="rt">¥0</span></button>`;
+  h+=`<button class="opt" data-g="give"><span class="ic">🏳️</span><span><div class="nm">あきらめて会社（学校）に連絡する</div></span><span class="rt"></span></button>`;
+  $('#pOpts').innerHTML=h;
+  drawMap([...new Set(sched.filter(e=>!(e.risk&&revealed(e)&&rollStatus(e).c)).map(e=>e.to).concat(flex.filter(f=>f.to!==G.node).map(f=>f.to)))]);
+  $('#pOpts').querySelectorAll('.opt').forEach(b=>b.onclick=()=>{if(G.busy||G.over)return;
+    if(b.dataset.e)takeEdge(E.find(e=>e.id===b.dataset.e));
+    else if(b.dataset.f!==undefined)takeFlex(F[+b.dataset.f]);
+    else generic(b.dataset.g);});
+}
+function log(msg,cls=''){G.log.push({t:G.t,msg,cls});const el=$('#log');el.innerHTML=G.log.slice().reverse().map(l=>`<div class="${l.cls}"><span class="tm mono">${hm(l.t)}</span>${l.msg}</div>`).join('');}
+
+/* ====================== travel ====================== */
+function animateTo(to,t1,cb){
+  G.busy=true;const a=N[G.node],b=N[to];const t0=G.t;const x0=PX(a.lon),y0=PY(a.lat),x1=PX(b.lon),y1=PY(b.lat);
+  const ms=Math.min(1600,400+(t1-t0)*1.2);const st=performance.now();
+  const step=now=>{const p=Math.min(1,(now-st)/ms);const q=p<.5?2*p*p:1-Math.pow(-2*p+2,2)/2;
+    const me=document.getElementById('me');if(me)me.setAttribute('transform',`translate(${x0+(x1-x0)*q},${y0+(y1-y0)*q})`);
+    $('#hClock').textContent=fmt(Math.round(t0+(t1-t0)*p));
+    if(p<1)requestAnimationFrame(step);else{G.busy=false;cb();}};
+  requestAnimationFrame(step);
+}
+function seatRoll(){if(G.flags.seatRes)return true;const h=(G.t-G.start)/60;return rnd()<Math.max(.12,.55-h*.09);}
+function takeEdge(e){
+  const d=effDep(e),a=effArr(e);
+  let msg=`${e.name}に乗車（${hm(d)}発）`;let fat=0;
+  if(e.seat){if(seatRoll()){msg+='。指定席に座れた';}else{fat+=(a-d)/5;msg+='。<span class="bad">指定席は満席、デッキで立ちっぱなし…</span>';}}
+  if(e.stand)fat+=(a-d)/5*e.stand;
+  if(e.night)fat+=20;
+  if(e.type==='ship')fat+=8;
+  const s=e.risk?rollStatus(e):null;
+  if(s&&s.d)msg+=`（約${s.d}分遅れ）`;
+  G.t=d;G.cost+=e.cost;
+  G.route.push({t:d,txt:`${N[e.from].n} ${hm(d)} →<b>${e.name}</b>→ ${N[e.to].n} ${hm(a)}`});
+  log(msg);
+  animateTo(e.to,a,()=>{G.t=a;G.node=e.to;G.fat=Math.min(100,G.fat+fat);arrive();});
+}
+function takeFlex(f){
+  if(f.sp)return special(f);
+  G.cost+=f.cost;const a=G.t+f.dur;
+  G.route.push({t:G.t,txt:`${N[f.from].n} ${hm(G.t)} →<b>${f.name}</b>→ ${N[f.to].n} ${hm(a)}`});
+  log(`${f.name}（${dur(f.dur)}）`);
+  animateTo(f.to,a,()=>{G.t=a;G.node=f.to;G.fat=Math.min(100,G.fat+(f.fat||5));arrive();});
+}
+function arrive(){
+  const n=N[G.node];
+  if(n.goal){return finish(true);}
+  log(`${n.n}に到着`,'good');
+  const ev={
+    OBS:'ここは帯広…。函館とは真逆に来てしまった。帯広空港の最終便に賭けるしかない。',
+    KUS:'終点・釧路。函館から最も遠い。釧路空港の最終便が頼みの綱。',
+    OSB:'山線の普通列車でようやく長万部。ここから北斗に乗れれば…。',
+    HCP:'本州上陸！八戸港だ。',SAO:'本州上陸！ 新青森だ。',
+    SNN:'三宮バスターミナルに到着。みどりの券売機は中央口で23:30まで…',
+    ICN:'ソウル仁川空港。空港からは出ずに乗り継ぎ。',
+    HMR:'東室蘭。すずらんの終点。北斗に乗り換えよう。'
+  }[G.node];
+  if(ev)toast(ev,3200);
+  if(G.node==='SNN'&&!G.flags.sunrise){
+    if(rnd()<.35){G.flags.sunrise=true;log('猛ダッシュで券売機に滑り込み、サンライズの寝台券を確保！','good');}
+    else log('券売機に間に合わなかった…サンライズに乗れない。','bad');
+  }
+  checkTimeout();render();
+}
+function checkTimeout(){if(G.t>=T('12:00',2)&&!G.over){finish(false,'timeout');}}
+
+/* ====================== specials ====================== */
+function special(f){
+  const sp=f.sp;
+  if(sp==='counter'){
+    G.t+=150;G.fat+=20;log('2時間半並んだ末、窓口で告げられた。「振替便は5日後まで満席です」','bad');toast('🧍 2時間半並んだ…<br>「振替は5日後まで満席です」');
+  }else if(sp==='taxiRefuse'){
+    G.t+=5;log('運転手「お客さん…海、渡れないっすよ」','bad');toast('🚕「お客さん…海、渡れないっすよ」');
+  }else if(sp==='terminal'){
+    const nt=nextMorning(G.t,330);G.fat=Math.min(100,G.fat+25);log('欠航で開放されたターミナルでマットを借りて夜明かし。');G.route.push({t:G.t,txt:'新千歳空港ターミナルで夜明かし'});G.t=nt;
+  }else if(sp==='onsen'){
+    const nt=nextMorning(G.t,330);G.cost+=f.cost;G.fat=Math.max(0,G.fat-40);log('空港の温泉施設で仮眠。体が温まった。','good');G.route.push({t:G.t,txt:'新千歳空港の温泉で仮眠'});G.t=nt;
+  }else if(sp==='standby'){
+    G.t=T('13:40',1);
+    if(rnd()<.2){G.cost+=38000;G.route.push({t:G.t,txt:'<b>空席待ちで羽田行きに滑り込み</b>'});log('空席待ちの番号が呼ばれた！ 14:00発の羽田行きに乗れる！','good');
+      animateTo('HND',T('15:40',1),()=>{G.t=T('15:40',1);G.node='HND';finish(true);});return;}
+    else{G.fat+=15;log('空席待ちは最後まで呼ばれなかった…','bad');toast('空席待ち、最後まで呼ばれず…');}
+  }else if(sp==='sunrise'){
+    G.t+=10;G.flags.sunrise=true;log('サンライズ瀬戸・出雲の寝台券を先に確保した。','good');toast('🎫 寝台券を確保。三宮で慌てなくて済む');
+  }else if(sp==='swim'){
+    G.route.push({t:G.t,txt:'<b>函館から津軽海峡に飛び込む</b>'});
+    startSwim(true);return;
+  }
+  checkTimeout();if(!G.over)render();
+}
+function nextMorning(t,minOfDay){const day=Math.floor(t/1440);let nt=day*1440+minOfDay;if(nt<=t)nt+=1440;return nt;}
+function generic(g){
+  const n=N[G.node];
+  if(g==='wait'){G.t+=30;}
+  else if(g==='phone'){G.t+=15;G.checkedAt=G.t;
+    const bad=E.filter(e=>e.risk&&rollStatus(e).c&&e.dep>G.t&&e.dep<G.t+1440).map(e=>e.name.replace(/（.*/,'')).filter((v,i,a)=>a.indexOf(v)===i);
+    log('📱 運行情報を確認。'+(bad.length?`欠航・運休：${bad.slice(0,8).join('、')}${bad.length>8?' ほか':''}`:'今のところ大きな欠航はなさそう'));}
+  else if(g==='seat'){G.t+=5;G.flags.seatTried=true;const p=Math.max(.15,.95-(G.t-G.start)/60*.25);
+    if(rnd()<p){G.flags.seatRes=true;log('えきねっとで指定席を確保！ 立ちっぱなしは回避','good');toast('🎫 指定席を確保した！');}
+    else{log('えきねっとで検索…どの列車も満席。欠航した人たちに先を越された','bad');toast('満席…。立ちっぱなし覚悟');}}
+  else if(g==='hotel'){const key=G.node+Math.floor((G.t+300)/1440);G.hotelTried[key]=1;
+    if(rnd()<n.hotel.p){G.cost+=n.hotel.c;G.fat=0;G.route.push({t:G.t,txt:`${n.hotel.nm}に宿泊`});log(`${n.hotel.nm}に空室あり！ 泊まって翌朝に備える`,'good');G.t=nextMorning(G.t,330);}
+    else{G.t+=20;log(`${n.hotel.nm}は全部満室だった…`,'bad');toast('🏨 どこも満室…');}}
+  else if(g==='camp'){return finish(false,'camp');}
+  else if(g==='give'){return finish(false,'give');}
+  checkTimeout();if(!G.over)render();
+}
+
+/* ====================== ending ====================== */
+function finish(ok,why){
+  G.over=true;let rank,title,body;
+  const t=G.t;
+  if(ok){
+    if(t<T('24:00'))[rank,title]=['S','当日中に脱出成功！'];
+    else if(t<=T('9:30',1))[rank,title]=['A','翌朝には都内！ 遅刻はするけど上出来'];
+    else if(t<=T('14:30',1))[rank,title]=['B','翌日の昼に東京着'];
+    else if(t<=T('23:59',1))[rank,title]=['C','翌日中にはなんとか帰還'];
+    else [rank,title]=['D','3日目にしてようやく東京'];
+    body=`<b>${N[G.node].n}</b>に ${fmt(t)} 到着。<br>出費 ${yen(G.cost)}・疲労 ${Math.round(G.fat)}%`;
+    if(G.node==='HND')body+='<br>結局飛行機で帰ってきた。';
+  }else{
+    rank='✕';
+    if(why==='camp'){title=rnd()<.5?'夜明け前、気温2℃。':'物音がして振り向くと、ヒグマがいた。';body='北海道の夜を甘く見てはいけない。冬はもちろん、秋でも野宿・駅寝は厳禁です。<br>（あなたは通りがかった人に保護されました）';}
+    else if(why==='give'){title='北海道にもう1泊';body='勤め先・学校に連絡して、無理せず道内に滞在することにした。…実はこれもかなり正しい判断です。';rank='—';}
+    else{title='北海道から出られない';body='3日目の昼を過ぎた。あなたはもう道民です。';}
+  }
+  $('#mbox').innerHTML=`<div class="rank">${rank}</div><h2>${title}</h2><div style="line-height:1.8">${body}</div>
+   <div class="route"><div style="color:var(--amber);margin-bottom:4px">あなたのルート（欠航決定 ${fmt(G.start)}）</div>${G.route.map(r=>r.txt).join('<br>')||'（どこにも行かなかった）'}</div>
+   <div style="display:flex;gap:8px;margin-top:16px;flex-wrap:wrap"><button class="btn" id="mAgain">もう一度（同じ時刻）</button><button class="btn ghost" id="mTitle">タイトルへ</button></div>`;
+  $('#modal').classList.add('on');
+  $('#mAgain').onclick=()=>{$('#modal').classList.remove('on');const s=G.start;newGame();G.t=s;G.start=s;startGame();};
+  $('#mTitle').onclick=()=>{$('#modal').classList.remove('on');show('title');};
+}
+
+/* ====================== start ====================== */
+function startGame(){
+  show('game');$('#log').innerHTML='';
+  log(`新千歳空港、全便欠航。今は ${fmt(G.t)}。東京へ帰る手段を探そう。`);
+  if(G.flags.passport)log('🛂 パスポートを持っている。翌日なら国際線乗り継ぎも使える。','good');
+  render();
+}
+$('#startTimes').innerHTML=START_CHOICES.map(([v,l])=>`<button data-v="${v}" class="${v===startSel?'sel':''}">${l}</button>`).join('');
+$('#startTimes').querySelectorAll('button').forEach(b=>b.onclick=()=>{startSel=b.dataset.v;$('#startTimes').querySelectorAll('button').forEach(x=>x.classList.toggle('sel',x===b));});
+$('#goEscape').onclick=()=>{newGame();runBoard();};
+$('#bdGo').onclick=startGame;
+$('#goSwim').onclick=()=>startSwim(false);
+
+/* ====================== SWIM (無理ゲー) ====================== */
+const L=18; // km
+let SW=null;
+const cv=$('#swimCv'),cx=cv.getContext('2d');const CW=420,CH=620;let CS=1;
+function fitCanvas(){CS=Math.min(4,(window.devicePixelRatio||1)*1.5);cv.width=CW*CS;cv.height=CH*CS;}
+const SWMSG=[[0.3,'📱 ポケットのスマホが水没した（記事の警告どおり）'],[4,'水温14℃。冷たい、というより痛い。'],[9,'津軽海峡は世界七大海峡のひとつ。'],[15,'西の日本海から津軽暖流が流れ込んでくる'],[22,'沖にイカ釣り漁船の灯りが見える…'],[30,'高波！ しょっぱい！'],[38,'腕が上がらなくなってきた'],[46,'あれ、残りの距離が全然減らない…（アキレスと亀）'],[55,'足の感覚がない'],[63,'意識が…遠のく…']];
+function startSwim(fromGame){
+  show('swim');fitCanvas();
+  SW={d:0,x:.38,temp:36.5,stam:100,last:null,el:0,msgs:[],mi:0,over:false,fromGame,wave:0,pushed:0,strokes:0,anim:0,arm:0,boats:[],gust:0,spd:0,lt:performance.now(),high:0};
+  requestAnimationFrame(swLoop);
+}
+function stroke(side){
+  if(!SW||SW.over)return;
+  const fresh=SW.last!==side;SW.last=side;SW.arm=side==='L'?1:-1;SW.anim=1;SW.strokes++;
+  const sf=.25+.75*(SW.stam/100);
+  const zeno=Math.pow(1-SW.d/L,1.15);
+  const g=(fresh?.07:.015)*sf*zeno;
+  SW.d=Math.min(L-0.0001,SW.d+g);SW.spd+=g*40;
+  SW.stam=Math.max(0,SW.stam-1.1);
+  SW.x+=side==='L'?-.011:.003;
+  if(!fresh&&rnd()<.3)swSay('同じ手ばかりだと進まない！');
+}
+function swSay(m){if(SW.msgs.length&&SW.msgs[SW.msgs.length-1].m===m&&SW.el-SW.msgs[SW.msgs.length-1].t<4)return;SW.msgs.push({m,t:SW.el});if(SW.msgs.length>4)SW.msgs.shift();}
+function swLoop(now){
+  if(!SW||SW.over)return;
+  const dt=Math.min(.05,(now-SW.lt)/1000);SW.lt=now;SW.el+=dt;
+  while(SW.mi<SWMSG.length&&SW.el>=SWMSG[SW.mi][0]){swSay(SWMSG[SW.mi][1]);SW.mi++;}
+  // physics
+  const prog=SW.d/L;
+  SW.gust=Math.max(0,SW.gust-dt*.5);
+  if(rnd()<dt*.12){SW.gust=.6+rnd()*.6;swSay(['突風！ 東へ流される','フェリーの航跡波が来た！','潮目に入った…流れが速い'][Math.floor(rnd()*3)]);}
+  const cur=.016+.03*prog+.02*SW.gust+.006*Math.sin(SW.el*.7);
+  SW.x+=cur*dt;SW.pushed+=cur*dt*9;
+  SW.temp-=dt*(.05+.02*prog);
+  SW.stam=Math.min(100,SW.stam+dt*2.6);
+  SW.spd*=Math.pow(.2,dt);SW.anim=Math.max(0,SW.anim-dt*4);
+  if(SW.x<.05)SW.x=.05;
+  if(SW.el>34&&SW.high===0){SW.high=1;SW.d=Math.max(0,SW.d-1.2);swSay('🌊 大波にのまれて押し戻された（-1.2km）');}
+  if(rnd()<dt*.12&&SW.boats.length<4)SW.boats.push({x:rnd()<.5?-40:460,y:80+rnd()*300,v:(rnd()*.5+.5)*40,k:rnd()<.5?'squid':'ferry'});
+  SW.boats.forEach(b=>{b.x+=(b.x<200&&b.v>0?1:1)*b.v*dt*(b.x<-30?1:1)*(b.dir||(b.dir=b.x<0?1:-1));});
+  SW.boats=SW.boats.filter(b=>b.x>-80&&b.x<520);
+  SW.wave+=dt*(1+SW.spd);
+  swDraw();
+  if(SW.x>=1)return swEnd('pacific');
+  if(SW.temp<=33)return swEnd('cold');
+  requestAnimationFrame(swLoop);
+}
+function swDraw(){
+  const W=CW,H=CH;const prog=SW.d/L;cx.setTransform(CS,0,0,CS,0,0);
+  const g=cx.createLinearGradient(0,0,0,H);g.addColorStop(0,'#0c2f55');g.addColorStop(1,'#061a33');cx.fillStyle=g;cx.fillRect(0,0,W,H);
+  // north coast (Hokkaido) recedes
+  const ny=40-prog*300;
+  cx.fillStyle='#2b3a5c';cx.beginPath();cx.moveTo(0,0);cx.lineTo(W,0);for(let x=W;x>=0;x-=20)cx.lineTo(x,ny+Math.sin(x*.05)*8);cx.closePath();cx.fill();
+  if(ny>-10){cx.fillStyle='#c9d1ea';cx.font='bold 13px sans-serif';cx.fillText('北海道・汐首岬',12,Math.max(16,ny-6));}
+  // south coast (Honshu) — Zeno: it only creeps closer
+  const sy=H-10-(Math.pow(prog,2.5))*120;
+  cx.fillStyle='#2b3a5c';cx.beginPath();cx.moveTo(0,H);cx.lineTo(W,H);for(let x=W;x>=0;x-=20)cx.lineTo(x,sy+Math.cos(x*.04)*6);cx.closePath();cx.fill();
+  cx.fillStyle='#c9d1ea';cx.font='bold 13px sans-serif';cx.fillText('本州・大間崎',W-110,Math.min(H-6,sy+22));
+  // waves
+  cx.strokeStyle='#ffffff22';cx.lineWidth=2;
+  for(let i=0;i<16;i++){const y=((i*44+SW.wave*60)%(H+40))-20;cx.beginPath();for(let x=0;x<=W;x+=10){const yy=y+Math.sin(x*.05+i+SW.el*2)*(4+SW.gust*8);x?cx.lineTo(x,yy):cx.moveTo(x,yy);}cx.stroke();}
+  // current arrows
+  cx.fillStyle='#4aa8ff55';cx.font='18px sans-serif';
+  for(let i=0;i<5;i++){const x=((SW.el*60*(1+prog*2)+i*100)%(W+60))-30;cx.fillText('→',x,140+i*80);}
+  // boats
+  SW.boats.forEach(b=>{if(b.k==='squid'){cx.fillStyle='#fff6c0';for(let j=0;j<5;j++){cx.beginPath();cx.arc(b.x+j*7-14,b.y-6,2.5,0,7);cx.fill();}cx.fillStyle='#ffffff22';cx.beginPath();cx.arc(b.x,b.y-6,26,0,7);cx.fill();cx.fillStyle='#ddd';cx.fillRect(b.x-18,b.y,36,7);}else{cx.fillStyle='#e8ecf6';cx.fillRect(b.x-34,b.y,68,12);cx.fillStyle='#4aa8ff';cx.fillRect(b.x-34,b.y+8,68,4);cx.fillStyle='#e8ecf6';cx.fillRect(b.x-14,b.y-8,28,8);}});
+  // rain
+  cx.strokeStyle='#ffffff30';cx.lineWidth=1;for(let i=0;i<70;i++){const x=(i*37+SW.el*300)%W,y=(i*83+SW.el*700)%H;cx.beginPath();cx.moveTo(x,y);cx.lineTo(x-6,y+14);cx.stroke();}
+  // swimmer
+  const px=SW.x*W,py=H*.56;
+  cx.fillStyle='#ffffff18';cx.beginPath();cx.ellipse(px,py+16,18,30,0,0,7);cx.fill();
+  cx.strokeStyle='#ffd9b0';cx.lineWidth=6;cx.lineCap='round';
+  const a=SW.anim;
+  cx.beginPath();cx.moveTo(px-6,py);cx.lineTo(px-14,py+(SW.arm===1?-22*a:14));cx.stroke();
+  cx.beginPath();cx.moveTo(px+6,py);cx.lineTo(px+14,py+(SW.arm===-1?-22*a:14));cx.stroke();
+  cx.fillStyle='#ffd9b0';cx.beginPath();cx.arc(px,py-4,8,0,7);cx.fill();
+  cx.fillStyle='#ff4d5e';cx.beginPath();cx.arc(px,py-7,8,Math.PI,0);cx.fill();
+  // HUD
+  cx.fillStyle='#000a';cx.fillRect(0,0,W,64);
+  cx.fillStyle='#ffb627';cx.font='bold 22px monospace';const rem=L-SW.d;
+  cx.fillText(`残り ${rem<1?rem.toFixed(4):rem.toFixed(2)} km`,12,28);
+  cx.font='12px sans-serif';cx.fillStyle='#e8ecf6';
+  cx.fillText(`体温 ${SW.temp.toFixed(1)}℃`,12,50);
+  cx.fillText(`体力`,110,50);cx.fillStyle='#ffffff22';cx.fillRect(140,41,80,10);cx.fillStyle=SW.stam>30?'#3ddc97':'#ff4d5e';cx.fillRect(140,41,80*SW.stam/100,10);
+  cx.fillStyle='#e8ecf6';cx.fillText(`東へ流された ${SW.pushed.toFixed(1)}km`,236,50);
+  // danger bar for pacific
+  cx.fillStyle='#ff4d5e33';cx.fillRect(W-14,64,14,H-64);cx.fillStyle='#ff4d5e';cx.font='bold 11px sans-serif';cx.save();cx.translate(W-3,H/2+40);cx.rotate(-Math.PI/2);cx.fillText('太平洋',0,0);cx.restore();
+  // messages
+  cx.font='bold 14px sans-serif';
+  SW.msgs.forEach((m,i)=>{const age=SW.el-m.t;if(age>5)return;cx.globalAlpha=Math.max(0,1-age/5);cx.fillStyle='#000a';const w=cx.measureText(m.m).width+16;cx.fillRect(W/2-w/2,80+i*26,w,22);cx.fillStyle='#fff';cx.fillText(m.m,W/2-w/2+8,96+i*26);cx.globalAlpha=1;});
+}
+function swEnd(why){
+  SW.over=true;
+  const reason=why==='cold'?['低体温症','体温が33℃を下回り、意識を失った。']:['太平洋へ流された','津軽暖流に押し流され、気づけば海峡の外。'];
+  setTimeout(()=>{
+    $('#mbox').innerHTML=`<div class="rank" style="color:var(--red)">FAILED</div><h2>${reason[0]}</h2>
+    <div style="line-height:1.8">${reason[1]}<br>まもなく<b>海上保安庁の巡視船</b>に救助され、こってり絞られた。<br><br>
+    泳いだ距離 <b>${SW.d.toFixed(2)}km</b> / ${L}km（達成率 ${(SW.d/L*100).toFixed(1)}%）<br>東へ流された距離 <b>${SW.pushed.toFixed(1)}km</b><br>ストローク数 ${SW.strokes}回</div>
+    <div class="route" style="color:var(--red)"><b style="color:var(--red)">⚠ 絶対に真似しないでください。</b>津軽海峡は潮の流れが非常に速く、鍛え抜いたスイマーでも過酷とされています。体ひとつで渡るのは常人には不可能で、命に関わります。悪天候の日に泳ぐのは論外です。</div>
+    <div style="display:flex;gap:8px;margin-top:16px;flex-wrap:wrap"><button class="btn red" id="sAgain">もう一度泳ぐ（無理）</button><button class="btn" id="sTrain">素直に北斗に乗る</button></div>`;
+    $('#modal').classList.add('on');
+    $('#sAgain').onclick=()=>{$('#modal').classList.remove('on');startSwim(SW.fromGame);};
+    $('#sTrain').onclick=()=>{$('#modal').classList.remove('on');if(SW.fromGame&&G){G.over=false;G.t+=180;G.node='HKD';G.fat=100;G.cost+=0;log('海保に救助され、3時間の事情聴取…。函館駅に戻ってきた。','bad');show('game');checkTimeout();if(!G.over)render();}else{newGame();runBoard();}};
+  },400);
+}
+document.addEventListener('keydown',e=>{
+  if(!$('#swim').classList.contains('on'))return;
+  if(e.repeat)return;
+  if(['ArrowLeft','a','A','z','Z'].includes(e.key)){stroke('L');e.preventDefault();}
+  if(['ArrowRight','d','D','x','X'].includes(e.key)){stroke('R');e.preventDefault();}
+});
+['L','R'].forEach(s=>{const b=$('#pad'+s);b.addEventListener('pointerdown',e=>{e.preventDefault();stroke(s);});});
+</script>
+</body>
+</html>
