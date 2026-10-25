@@ -187,7 +187,7 @@ function buildGlyph(ch){
   const ras=rasterize(ch);
   const group=new THREE.Group();
   const g={group,ch,ok:false,stubs:[],D,dz:DZ,edgeCount:0,paperCount:0};
-  if(!ras){g.cols=g.rows=1;g.cell=GSIZE;g.W=g.H=.04;g.total=0;g.alive=0;g.hp=[];g.type=[];return g;}
+  if(!ras){g.cols=g.rows=0;g.cell=GSIZE;g.W=g.H=.04;g.total=0;g.alive=0;g.edgeCm=0;g.hp=new Uint8Array(0);g.type=new Uint8Array(0);g.pIdx=new Int32Array(0);g.eIdx=new Int32Array(0);return g;} // 空白など見えない文字
   const {cols,rows,fill,col}=ras;const cell=GSIZE/RES;
   Object.assign(g,{cols,rows,cell,W:cols*cell,H:rows*cell});
   let emojiish=false;
@@ -230,7 +230,7 @@ function chip(g,i,j){ // 輪郭セルの一番手前の層を削る
   if(i<0||j<0||i>=g.cols||j>=g.rows)return;const c=j*g.cols+i;if(g.hp[c]<=0)return;
   const k=D-g.hp[c];const id=g.eIdx[c*D+k];if(id>=0){g.eMesh.setMatrixAt(id,ZERO);g.alive--;}g.hp[c]--;g.eMesh.instanceMatrix.needsUpdate=true;
 }
-function tear(g,ci,cj,r){let n=0;const R=Math.ceil(r);for(let dj=-R;dj<=R;dj++)for(let di=-R;di<=R;di++){if(di*di+dj*dj>r*r)continue;const i=ci+di,j=cj+dj;if(i<0||j<0||i>=g.cols||j>=g.rows)continue;const id=j*g.cols+i;if(g.pIdx[id]>=0){g.pMesh.setMatrixAt(g.pIdx[id],ZERO);g.pIdx[id]=-1;n++;}}if(n)g.pMesh.instanceMatrix.needsUpdate=true;return n;}
+function tear(g,ci,cj,r){let n=0;if(!g.pMesh)return 0;const R=Math.ceil(r);for(let dj=-R;dj<=R;dj++)for(let di=-R;di<=R;di++){if(di*di+dj*dj>r*r)continue;const i=ci+di,j=cj+dj;if(i<0||j<0||i>=g.cols||j>=g.rows)continue;const id=j*g.cols+i;if(g.pIdx[id]>=0){g.pMesh.setMatrixAt(g.pIdx[id],ZERO);g.pIdx[id]=-1;n++;}}if(n)g.pMesh.instanceMatrix.needsUpdate=true;return n;}
 function pocketSlot(g){return new THREE.Vector3(PK.x,PK.y-PK.h/2+.006+g.H/2,.15);}
 
 /* ================= fx ================= */
@@ -286,7 +286,7 @@ const SUGS=['鬱','龘','■','i','・','♥','卍','🛡','📱','🍞','💎',
 $('#sugs').innerHTML=SUGS.filter(s=>s!=='卍').map(s=>`<button>${s}</button>`).join('');
 $('#sugs').querySelectorAll('button').forEach(b=>b.onclick=()=>{$('#ch').value=b.textContent;updInfo();});
 function cps(g){return [...g].map(c=>'U+'+c.codePointAt(0).toString(16).toUpperCase().padStart(4,'0')).join(' ');}
-function updInfo(){const g=graphemeOf($('#ch').value);$('#info').textContent=g?`選択中：「${g}」 ${cps(g)}`:'1文字入れてください（2文字以上入れたら最初の1文字を使います）';$('#go').disabled=!g;}
+function updInfo(){const g=graphemeOf($('#ch').value);$('#info').textContent=g?`選択中：「${g}」 ${cps(g)}${g.trim()?'':'（空白文字・見えない文字）'}`:'1文字入れてください（2文字以上入れたら最初の1文字を使います）';$('#go').disabled=!g;}
 $('#ch').addEventListener('input',updInfo);$('#ch').addEventListener('keydown',e=>{if(e.key==='Enter'&&!$('#go').disabled)start();});
 updInfo();
 
